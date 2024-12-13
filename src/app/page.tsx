@@ -1,101 +1,151 @@
-import Image from "next/image";
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import AppLayout from '@/components/layout/AppLayout';
+import ChatInput from '@/components/chat/ChatInput';
+import ActionButtons from '@/components/chat/ActionButtons';
+import ModelSelector from '@/components/chat/ModelSelector';
+import { useChatStore } from '@/store/chatStore';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { addMessage, selectedModel, setStreaming, setError, updateMessage } = useChatStore();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleSubmit = async (message: string, files?: File[]) => {
+    if (!message.trim() && (!files || files.length === 0)) return;
+
+    const chatId = uuidv4();
+    
+    // Convert files to base64 if they exist
+    const imageAttachments = files ? await Promise.all(
+      files.map(async (file) => {
+        const reader = new FileReader();
+        return new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    ) : [];
+
+    // Add user message
+    const userMessage = {
+      id: uuidv4(),
+      chatId,
+      role: 'user' as const,
+      content: message,
+      timestamp: Date.now(),
+      model: selectedModel,
+      images: imageAttachments,
+    };
+
+    addMessage(userMessage);
+
+    // Navigate to chat page immediately
+    router.push(`/chat/${chatId}`);
+
+    try {
+      setStreaming(true);
+
+      // Get the current language from localStorage
+      const selectedLanguage = localStorage.getItem('selectedLanguage') || 'en';
+
+      // Create assistant message placeholder
+      const assistantMessage = {
+        id: uuidv4(),
+        chatId,
+        role: 'assistant' as const,
+        content: '',
+        timestamp: Date.now(),
+        model: selectedModel,
+      };
+      addMessage(assistantMessage);
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [userMessage],
+          model: selectedModel,
+          language: selectedLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response reader');
+
+      let accumulatedContent = '';
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Convert the chunk to text
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split('\n');
+
+          // Process each line
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.content) {
+                  accumulatedContent += data.content;
+                  updateMessage(assistantMessage.id, accumulatedContent);
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e);
+                continue;
+              }
+            }
+          }
+        }
+      } catch (streamError) {
+        console.error('Stream processing error:', streamError);
+        throw streamError;
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error) {
+      console.error('Error in chat:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get response');
+    } finally {
+      setStreaming(false);
+    }
+  };
+
+  // Get the user's first name
+  const firstName = session?.user?.name?.split(' ')[0] || '';
+
+  return (
+    <AppLayout>
+      <main className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-[#212121]">
+        <h1 className="text-4xl font-semibold mb-8 dark:text-white">
+          What can I help with?
+        </h1>
+        <div className="w-full max-w-2xl px-4 space-y-4">
+          <ModelSelector className="mx-auto" />
+          <ChatInput onSubmit={handleSubmit} />
+          <ActionButtons />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      <footer className="text-center p-4 text-sm text-gray-500 bg-white dark:bg-[#212121]">
+        Powered by <a href="#" className="font-bold">OlenkaAI</a>.
       </footer>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,0 +1,11 @@
+check the existing codebase thoroughly before making changes Do not create files with different names for the same functionality. If new design elements are required, ensure they align with the current theme or template. 
+
+Provide a preview of all modifications before applying them. Don't make any changes to the current api model unless explicitly asked
+
+Never remove or modify the existing schema data. If you are asked to add new data, simply add it without altering or deleting the existing data. Go through the existing schema before making any changes
+
+Never remove or modify existing code that is unrelated to the requested change.
+
+Never make any changes to the design or change the model name.
+
+check the existing codebase thoroughly before making changes Do not create files or route with different names for the same functionality. If new design elements are required, ensure they align with the current theme or template. 
