@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../[...nextauth]/route";
+import { authOptions } from "../[...nextauth]/auth";
 import { signJwtAccessToken } from "@/lib/jwt";
 
 const prisma = new PrismaClient();
