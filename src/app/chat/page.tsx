@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import Layout from '@/components/layout/Layout';
 import ChatInput from '@/components/chat/ChatInput';
 import ModelSelector from '@/components/chat/ModelSelector';
@@ -8,6 +10,7 @@ import { useChatStore } from '@/store/chatStore';
 
 export default function ChatPage() {
   const { messages } = useChatStore();
+  const chatId = uuidv4(); // Generate a unique chat ID for the main chat page
 
   return (
     <Layout>
@@ -21,7 +24,7 @@ export default function ChatPage() {
               Start a conversation by selecting a model and typing a message
             </div>
           ) : (
-            <ChatMessages />
+            <ChatMessages chatId={chatId} />
           )}
         </div>
         <div className="p-4">
