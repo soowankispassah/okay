@@ -209,7 +209,12 @@ export async function POST(req: NextRequest) {
       (async () => {
         try {
           for await (const chunk of message) {
-            if ('type' in chunk && chunk.type === 'content_block_delta' && 'delta' in chunk) {
+            if (
+              'type' in chunk && 
+              chunk.type === 'content_block_delta' && 
+              'delta' in chunk &&
+              'text' in chunk.delta
+            ) {
               const content = chunk.delta.text || '';
               if (content) {
                 await writer.write(
