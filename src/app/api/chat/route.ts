@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
+import { MessageStreamEvent } from '@anthropic-ai/sdk/lib/types';
 
 // Initialize AI clients
 const openai = new OpenAI({
@@ -209,11 +210,13 @@ export async function POST(req: NextRequest) {
       (async () => {
         try {
           for await (const chunk of message) {
-            const content = chunk.delta?.text || '';
-            if (content) {
-              await writer.write(
-                encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
-              );
+            if (chunk.type === 'content_block_delta') {
+              const content = chunk.delta.text || '';
+              if (content) {
+                await writer.write(
+                  encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
+                );
+              }
             }
           }
         } catch (error) {
