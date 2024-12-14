@@ -5,51 +5,47 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+
+  .dark {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@layer utilities {
+  .step {
+    counter-increment: step;
+  }
+
+  .step:before {
+    @apply absolute w-9 h-9 bg-neutral-100 dark:bg-neutral-800 rounded-full font-mono font-medium text-center text-neutral-600 dark:text-neutral-400 text-base inline-flex items-center justify-center -indent-px;
+    content: counter(step);
+  }
 }
 
 /* Custom styles for code blocks */
 .prose pre {
-  background-color: rgb(24, 24, 27) !important;
-  border-radius: 0.5rem;
-  margin: 0;
-  padding: 1rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  @apply bg-neutral-900 rounded-lg my-0 p-4 whitespace-pre-wrap break-words;
 }
 
 .prose pre > code {
-  display: inline-block;
-  min-width: 100%;
-  word-break: break-word;
+  @apply inline-block min-w-full break-words;
 }
 
 .prose code {
-  background-color: rgb(243, 244, 246);
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.25rem;
-  font-size: 0.875rem;
+  @apply bg-neutral-100 dark:bg-neutral-800 rounded px-1 py-0.5 text-sm;
 }
 
 .prose pre code {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-  color: rgb(229, 231, 235);
+  @apply bg-transparent p-0 rounded-none text-neutral-200;
 }

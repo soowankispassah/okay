@@ -9,6 +9,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
