@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
-import { writeFile } from 'fs/promises';
+import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
 import path from 'path';
-import { authOptions } from '../../auth/[...nextauth]/auth';
-
-const prisma = new PrismaClient();
+import { writeFile, unlink } from 'fs/promises';
+import { existsSync } from 'fs';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -29,6 +28,12 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ message: 'Invalid file type. Only JPEG, PNG and WebP are allowed.' }, { status: 400 });
       }
 
+      // Get current user to check for old image
+      const currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { image: true }
+      });
+
       // Generate unique filename
       const timestamp = Date.now();
       const extension = file.type.split('/')[1];
@@ -42,6 +47,18 @@ export async function PUT(req: NextRequest) {
       const filePath = path.join(process.cwd(), 'public', 'profile-pictures', filename);
       await writeFile(filePath, buffer);
 
+      // Delete old image file if it exists
+      if (currentUser?.image) {
+        const oldImagePath = path.join(process.cwd(), 'public', currentUser.image);
+        if (existsSync(oldImagePath)) {
+          try {
+            await unlink(oldImagePath);
+          } catch (error) {
+            console.error('Error deleting old image:', error);
+          }
+        }
+      }
+
       // Update user profile in database
       const imageUrl = `/profile-pictures/${filename}`;
       const user = await prisma.user.update({
@@ -52,21 +69,20 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ user });
     }
 
-    // Handle JSON data for name update
+    // Handle JSON data for other profile updates
     const data = await req.json();
     
-    if (data.name !== undefined) {
-      const user = await prisma.user.update({
-        where: { email: session.user.email },
-        data: { name: data.name },
-      });
+    const updateData: any = {};
+    if (data.name) updateData.name = data.name;
 
-      return NextResponse.json({ user });
-    }
+    const user = await prisma.user.update({
+      where: { email: session.user.email },
+      data: updateData,
+    });
 
-    return NextResponse.json({ message: 'No data provided' }, { status: 400 });
+    return NextResponse.json({ user });
   } catch (error: any) {
-    console.error('Profile update error:', error);
+    console.error('Update profile error:', error);
     return NextResponse.json(
       { message: error.message || 'Error updating profile' },
       { status: 500 }

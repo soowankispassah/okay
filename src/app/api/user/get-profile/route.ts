@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../../auth/[...nextauth]/auth';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { existsSync } from 'fs';
+import path from 'path';
 
 export async function GET() {
   try {
@@ -23,6 +23,38 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    // Check if the image file exists
+    if (user.image) {
+      const imagePath = path.join(process.cwd(), 'public', user.image);
+      if (!existsSync(imagePath)) {
+        // Image file doesn't exist, update to use the latest image
+        const latestImage = await prisma.user.findFirst({
+          where: { 
+            email: session.user.email,
+            image: { not: user.image } // Find a different image
+          },
+          orderBy: { updatedAt: 'desc' },
+          select: { image: true }
+        });
+
+        if (latestImage?.image) {
+          // Update user's image to the latest one
+          await prisma.user.update({
+            where: { email: session.user.email },
+            data: { image: latestImage.image }
+          });
+          user.image = latestImage.image;
+        } else {
+          // No valid image found, clear the image field
+          await prisma.user.update({
+            where: { email: session.user.email },
+            data: { image: null }
+          });
+          user.image = null;
+        }
+      }
     }
 
     return NextResponse.json({ user });
