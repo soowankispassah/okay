@@ -25,7 +25,7 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
         <Providers>{children}</Providers>
       </body>
     </html>
