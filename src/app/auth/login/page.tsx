@@ -3,8 +3,9 @@
 import LoginForm from "@/components/auth/LoginForm";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const deleted = searchParams.get('deleted');
 
@@ -38,5 +39,17 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black dark:border-white"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 } 

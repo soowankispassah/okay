@@ -6,6 +6,7 @@ export function useChat() {
   const { addMessage, selectedModel, setStreaming } = useChatStore();
   const [error, setError] = useState<string | null>(null);
   const abortController = useRef<AbortController | null>(null);
+  const chatId = useRef(uuidv4()).current;
 
   const sendMessage = useCallback(async (content: string, images?: string[]) => {
     try {
@@ -20,6 +21,7 @@ export function useChat() {
       // Add user message
       const userMessage = {
         id: uuidv4(),
+        chatId,
         role: 'user' as const,
         content,
         timestamp: Date.now(),
@@ -32,6 +34,7 @@ export function useChat() {
       const aiMessageId = uuidv4();
       addMessage({
         id: aiMessageId,
+        chatId,
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
@@ -81,6 +84,7 @@ export function useChat() {
               accumulatedContent += data.content;
               addMessage({
                 id: aiMessageId,
+                chatId,
                 role: 'assistant',
                 content: accumulatedContent,
                 timestamp: Date.now(),
@@ -104,7 +108,7 @@ export function useChat() {
       setStreaming(false);
       abortController.current = null;
     }
-  }, [addMessage, selectedModel, setStreaming]);
+  }, [addMessage, selectedModel, setStreaming, chatId]);
 
   const cancelRequest = useCallback(() => {
     if (abortController.current) {

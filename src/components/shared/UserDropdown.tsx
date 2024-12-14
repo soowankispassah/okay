@@ -5,7 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ProfileIcon, SettingsIcon, SunIcon, MoonIcon, LogoutIcon } from '@/components/icons/dropdown'
+import { ProfileIcon, SettingsIcon, SunIcon, MoonIcon, LogoutIcon } from '@/components/icons'
 
 export default function UserDropdown() {
   const router = useRouter()

@@ -5,8 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/AppLayout';
-import { CameraIcon } from '@/components/icons';
-import { SpinnerIcon } from '@/components/icons/index';
+import { CameraIcon, SpinnerIcon } from '@/components/icons';
 
 // Add this function at the top of the file, before the component
 async function compressImage(file: File, maxSizeMB: number = 1): Promise<File> {

@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import Layout from '@/components/layout/Layout';
 import ChatInput from '@/components/chat/ChatInput';
 import ModelSelector from '@/components/chat/ModelSelector';
 import ChatMessages from '@/components/chat/ChatMessages';
 import { useChatStore } from '@/store/chatStore';
+import { v4 as uuidv4 } from 'uuid';
+import { useEffect } from 'react';
 
 export default function ChatPage() {
-  const { messages } = useChatStore();
-  const chatId = uuidv4(); // Generate a unique chat ID for the main chat page
+  const { messages, selectedChatId } = useChatStore();
+  const chatId = selectedChatId || uuidv4();
 
   return (
     <Layout>

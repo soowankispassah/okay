@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { AttachmentIcon } from '../icons';
-import { SendIcon } from '@/components/icons/dropdown';
-import Image from 'next/image';
+import { useState, useRef, useEffect } from 'react';
 import { useChatStore } from '@/store/chatStore';
+import { AttachmentIcon, SendIcon } from '@/components/icons';
+import Image from 'next/image';
 
 interface ChatInputProps {
   onSubmit?: (message: string, files?: File[]) => void;

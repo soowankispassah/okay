@@ -1,6 +1,7 @@
 'use client';
 
-import { ImageIcon, LightbulbIcon, SparklesIcon, ChartIcon, ImageSearchIcon } from '../icons';
+import { useState } from 'react';
+import { ImageIcon, LightbulbIcon, SparklesIcon, ChartIcon, ImageSearchIcon } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import { v4 as uuidv4 } from 'uuid';
@@ -41,10 +42,12 @@ const quickActions = [
 export default function ActionButtons() {
   const router = useRouter();
   const { addMessage, selectedModel } = useChatStore();
+  const chatId = uuidv4();
 
   const handleAction = (prompt: string) => {
     const message = {
       id: uuidv4(),
+      chatId,
       role: 'user' as const,
       content: prompt,
       timestamp: Date.now(),
