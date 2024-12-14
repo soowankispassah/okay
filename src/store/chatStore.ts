@@ -23,9 +23,10 @@ interface ChatStore {
   initializeSession: () => Promise<void>;
   deleteChat: (chatId: string) => Promise<boolean>;
   updateChatTitle: (chatId: string, title: string) => Promise<boolean>;
+  setSelectedChatId: (chatId: string | null) => void;
 }
 
-const initialState: Omit<ChatStore, 'addMessage' | 'updateMessage' | 'setModel' | 'setStreaming' | 'setError' | 'clearMessages' | 'getMessagesByChatId' | 'getChatTitle' | 'initializeSession' | 'deleteChat' | 'updateChatTitle'> = {
+const initialState: Omit<ChatStore, 'addMessage' | 'updateMessage' | 'setModel' | 'setStreaming' | 'setError' | 'clearMessages' | 'getMessagesByChatId' | 'getChatTitle' | 'initializeSession' | 'deleteChat' | 'updateChatTitle' | 'setSelectedChatId'> = {
   messages: [],
   messagesByChatId: {},
   chatTitles: {},
@@ -122,7 +123,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
   setModel: (model) => {
-    console.log('Setting model to:', model);
     set({ selectedModel: model });
   },
   setError: (error) => set({ error }),
@@ -132,6 +132,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
   getChatTitle: (chatId: string) => {
     return get().chatTitles[chatId] || 'New Chat';
+  },
+  setSelectedChatId: (chatId: string | null) => {
+    set({ selectedChatId: chatId });
   },
   initializeSession: async () => {
     const state = get();
@@ -148,6 +151,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }
 
       const data = await response.json();
+
       if (data.success && data.chats) {
         const messagesByChatId: Record<string, Message[]> = {};
         const chatTitles: Record<string, string> = {};
@@ -158,9 +162,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               if (chat.messages && chat.messages.length > 0) {
                 messagesByChatId[chat.id] = chat.messages.map((msg: any) => ({
                   ...msg,
-                  timestamp: new Date(msg.timestamp).getTime(),
+                  timestamp: new Date(msg.timestamp).getTime()
                 }));
-                chatTitles[chat.id] = chat.title || chat.messages[0]?.content || 'New Chat';
+                
+                chatTitles[chat.id] = chat.title || messagesByChatId[chat.id][0]?.content?.slice(0, 100) || 'New Chat';
               }
             });
           }
@@ -199,9 +204,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (data.success) {
         set((state) => {
           const newMessagesByChatId = { ...state.messagesByChatId };
+          const newChatTitles = { ...state.chatTitles };
           delete newMessagesByChatId[chatId];
+          delete newChatTitles[chatId];
           return {
-            messagesByChatId: newMessagesByChatId
+            messagesByChatId: newMessagesByChatId,
+            chatTitles: newChatTitles,
+            selectedChatId: state.selectedChatId === chatId ? null : state.selectedChatId
           };
         });
         return true;
